@@ -1,0 +1,271 @@
+---
+title: "IAT Participant level analysis: baseline"
+author: "Alexander Porshnev"
+date: "12/05/2025"
+format:
+  html:
+    code-fold: true
+engine: knitr
+julia:
+  exeflags: ["--project=."]
+execute:
+  echo: false
+  warning: false
+---
+
+# IAT Participant level analysis report on baseline
+
+
+Notice that you don't need to define chunk options, but you can using
+`#+`. just before code e.g. `#+ term=True, caption='Fancy plots.'`.
+If you're viewing the published version have a look at the
+[source](FIR_design_plots.jl) to see the markup.
+
+```{julia}
+	using Pkg
+	using CairoMakie        
+	using DataFrames
+	using MixedModels
+	using MixedModelsMakie # diagnostic plots
+	using RCall            # call R from Julia
+	using Arrow
+	using StandardizedPredictors
+	using BoxCox
+	using LinearAlgebra
+	using StatsAPI
+	using StatsBase
+	using CSV
+	using PrettyTables
+```
+
+```{r}
+print("Hello")
+```
+
+
+## Upload Dataset
+
+```{julia}
+
+iat = DataFrame(Arrow.Table("out_step_02/t_2009_top10.arrow"))
+
+function OutModel(m_prec, m_next)
+	print(m_next, "\n")
+	print(MixedModels.likelihoodratiotest(m_prec, m_next), "\n")
+    return 1
+end
+
+print("Hello Julia")
+```
+
+#```{julia}
+m00 = let levels = ["m", "f", "n"]
+      form = @formula(
+    RT ~
+      1 + age + sex + countryres 
+        + Length + NSyll  
+	    + Order
+        + (1 | subj)  + (1|trial_name)
+      )
+  contrasts = Dict(
+    :birth_sex => HypothesisCoding(
+      [
+         1/2  0  -1/2
+         0  1/2 -1/2
+      ];
+      levels,
+      labels=["m", "f"],),
+      :countrycit => SeqDiffCoding(),
+      :age => Center(24), #centered to median
+      :Length => Center(6),
+      :NSyll => Center(2)
+   )
+    fit(MixedModel, form, iat; contrasts)
+end
+
+print("## m00", m00, "/n")
+
+m01 = let levels = ["m", "f", "n"]
+      form = @formula(
+    RT ~
+      1 + age + sex + countryres 
+      + Length + NSyll
+      + Order + change
+      + (1 | subj)  + (1|trial_name)
+      )
+  contrasts = Dict(
+    :birth_sex => HypothesisCoding(
+      [
+         1/2  0  -1/2
+         0  1/2 -1/2
+      ];
+      levels,
+      labels=["m", "f"],),
+      :countrycit => SeqDiffCoding(),
+      :age => Center(24), #centered to median
+      :Length => Center(6),
+      :NSyll => Center(2)
+   )
+    fit(MixedModel, form, iat; contrasts)
+end
+
+OutModel(m00, m01)
+
+m02a = let levels = ["m", "f", "n"]
+      form = @formula(
+    RT ~
+      1 + age + birth_sex + countryres 
+      + Length + NSyll 
+      + change + Order 
+      + trial_number 
+      + (1 | subj)  + (1|trial_name)
+      )
+  contrasts = Dict(
+    :birth_sex => HypothesisCoding(
+      [
+         1/2  0  -1/2
+         0  1/2 -1/2
+      ];
+      levels,
+      labels=["m", "f"],),
+      :countrycit => SeqDiffCoding(),
+      :age => Center(24), #centered to median
+      :Length => Center(6),
+      :NSyll => Center(2)
+   )
+    fit(MixedModel, form, iat; contrasts)
+end
+
+m02 = let levels = ["m", "f", "n"]
+      form = @formula(
+    RT ~
+      1 + age + birth_sex + countryres 
+      + Length + NSyll 
+      + change + Order 
+      + trial_number 
+	  + after_error 
+      + (1 | subj)  + (1|trial_name)
+      )
+  contrasts = Dict(
+    :birth_sex => HypothesisCoding(
+      [
+         1/2  0  -1/2
+         0  1/2 -1/2
+      ];
+      levels,
+      labels=["m", "f"],),
+      :countrycit => SeqDiffCoding(),
+      :age => Center(24), #centered to median
+      :Length => Center(6),
+      :NSyll => Center(2)
+   )
+    fit(MixedModel, form, iat; contrasts)
+end
+ 
+m02bnc = let levels = ["m", "f", "n"]
+      form = @formula(
+    RT ~
+      1 + age + birth_sex + countryres 
+      + Length + NSyll 
+      + change + Order 
+      + trial_number + after_error 
+	  + logBNC
+      + (1 | subj)  + (1|trial_name)
+      )
+  contrasts = Dict(
+    :birth_sex => HypothesisCoding(
+      [
+         1/2  0  -1/2
+         0  1/2 -1/2
+      ];
+      levels,
+      labels=["m", "f"],),
+      :countrycit => SeqDiffCoding(),
+      :age => Center(24), #centered to median
+      :Length => Center(6),
+      :NSyll => Center(2)
+   )
+    fit(MixedModel, form, iat; contrasts)
+end
+OutModel(m02, m02bnc)
+
+
+m02ukwac = let levels = ["m", "f", "n"]
+      form = @formula(
+    RT ~
+      1 + age + birth_sex + countryres 
+      + Length + NSyll 
+      + change + Order 
+      + trial_number + after_error 
+	  + logUKWAC
+      + (1 | subj)  + (1|trial_name)
+      )
+  contrasts = Dict(
+    :birth_sex => HypothesisCoding(
+      [
+         1/2  0  -1/2
+         0  1/2 -1/2
+      ];
+      levels,
+      labels=["m", "f"],),
+      :countrycit => SeqDiffCoding(),
+      :age => Center(24), #centered to median
+      :Length => Center(6),
+      :NSyll => Center(2)
+   )
+    fit(MixedModel, form, iat; contrasts)
+end
+OutModel(m02, m02ukwac)
+
+m02bbc = let levels = ["m", "f", "n"]
+      form = @formula(
+    RT ~
+      1 + age + birth_sex + countryres 
+      + Length + NSyll 
+      + change + Order 
+      + trial_number + after_error 
+	  + logBBC
+      + (1 | subj)  + (1|trial_name)
+      )
+  contrasts = Dict(
+    :birth_sex => HypothesisCoding(
+      [
+         1/2  0  -1/2
+         0  1/2 -1/2
+      ];
+      levels,
+      labels=["m", "f"],),
+      :countrycit => SeqDiffCoding(),
+      :age => Center(24), #centered to median
+      :Length => Center(6),
+      :NSyll => Center(2)
+   )
+    fit(MixedModel, form, iat; contrasts)
+end
+OutModel(m02, m02bbc)
+```
+=#
+#=```{julia}
+
+modelBICs = DataFrame([ (model="m00: ASCLNsO ", bic=bic(m00),delta = "-"),
+						(model="m01: m00+change", bic=bic(m01),delta =bic(m00)-bic(m01)),
+						(model="m02a: m01+trial_number", bic=bic(m02a),delta =bic(m01)-bic(m02a)),
+						(model="m02:m02a+after_error", bic=bic(m02),delta =bic(m02a)-bic(m02)),
+						(model="m02+logBNC", bic=bic(m02bnc),delta =bic(m02)-bic(m02bnc)),
+						(model="m02+logUKWAC", bic=bic(m02ukwac),delta =bic(m02)-bic(m02ukwac)),
+						(model="m02+logBBC", bic=bic(m02bbc),delta =bic(m02)-bic(m02bbc))
+#=, 
+	   	(model="m1_ukwac", bic=bic(m1_ukwac)),
+		  	(model="m1_bnc", bic=bic(m1_bnc)),
+		  	(model="m1_bbc", bic=bic(m1_bbc)),
+			(model="m1_bnc", bic=bic(m1_bnc)),
+			(model="m2", bic=bic(m2)),
+			(model="m3", bic=bic(m3))
+=#
+])
+print(modelBICs)
+pretty_table(modelBICs)
+```
+=#
+
+
