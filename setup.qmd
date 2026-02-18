@@ -11,7 +11,7 @@ using Pkg
 #Pkg.add("MixedModelsMakie")
 #Pkg.add("CairoMakie")
 #Pkg.add("DataFrames")
-Pkg.add("RCall")
+#Pkg.add("RCall")
 #Pkg.add("Arrow")
 #Pkg.add("StandardizedPredictors")
 #Pkg.add("BoxCox")
@@ -19,5 +19,27 @@ Pkg.add("RCall")
 #Pkg.add("StatsAPI")
 #Pkg.add("StatsBase")
 #Pkg.add("CSV")
-Pkg.add("PrettyTables")
+#Pkg.add("PrettyTables")
+#Pkg.add("CSV")
+#Pkg.add("MixedModelsExtras")
+#Pkg.add("HypothesisTests")
+#Pkg.add("Formatting")
+using Markdown
+```
+
+```{julia}
+#| echo: false
+#| output: asis
+i = 10
+function Head(s)
+md = Markdown.parse("## "*s);
+md
+end
+```
+```{julia}
+#| echo: true
+
+
+Head("hello")
+
 ```

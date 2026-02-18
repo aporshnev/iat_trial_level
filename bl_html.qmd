@@ -40,7 +40,7 @@ execute:
 ```{julia}
 #| echo: false
 #| results: "hidden"
-iat = DataFrame(Arrow.Table("out_step_02/t_2009_top10.arrow"))
+iat = DataFrame(Arrow.Table("../out_step_02/t_2009_top10.arrow"))
 
 function init_html(file_name = "bl_render.html")
 	open(file_name, "w") do io
