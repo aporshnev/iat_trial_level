@@ -3,7 +3,7 @@ title: "IAT Participant level analysis: main"
 author: "Alexander Porshnev"
 date: "12/05/2025"
 format:
-  pdf:
+  html:
     code-fold: true
 engine: julia
 julia:
@@ -37,6 +37,9 @@ execute:
   using HypothesisTests
   using Formatting
   using Markdown
+  #using NamedArrays
+  #using FreqTables
+  #using LinearRegressionKit
 ```
 ```{julia}
 #| echo: false
@@ -49,7 +52,7 @@ execute:
 ```{julia}
 #| echo: false
 #| results: "hidden"
-iat = DataFrame(Arrow.Table("../out_step_02/t_2009_top10.arrow"))
+iat = DataFrame(Arrow.Table("../out_step_02/t_2009_clean.arrow"))
 
 function load_ldm(ldm_name)
     return CSV.read("../in_Distances/all/" * ldm_name * ".csv", DataFrame)
@@ -68,7 +71,7 @@ function close_html(file_name = "bl_render.html")
 end
 
 function print_html(smth, file_name = "bl_render.html")
-   display(smth)
+   print(smth)
    open(file_name, "a") do io
 	    show(io, MIME("text/html"), smth)
 	 end
@@ -116,7 +119,8 @@ distances=["cos_subtitles_skipgram_50_r3",
 "cos_subtitles_skipgram_50_r5",
 "cos_subtitles_skipgram_50_r10",
 "cos_subtitles_skipgram_100_r10",
-"subtitles_conditional_probability_ngram_None_r10","subtitles_conditional_probability_ngram_None_r3",
+"subtitles_conditional_probability_ngram_None_r10",
+"subtitles_conditional_probability_ngram_None_r3",
 "subtitles_log_ngram_None_r10",
 "subtitles_conditional_probability_ngram_None_r5",
 "subtitles_log_ngram_None_r5",
@@ -175,12 +179,13 @@ print("R2 marginal:", round(r2_bl_marginal,digits=3), " R2 conditional: ", round
 function MakeModel(ldm_nameIn)
 
 dist_ldm =load_ldm(ldm_nameIn)
-dist_ldm = transform(dist_ldm, :"First word" => ByRow(passmissing(lowercase)) => :"First word")
-dist_ldm[!, "stimuli_join"] = (string.(dist_ldm[!, "First word"], "_", dist_ldm[!, "Second word"]))
+
+dist_ldm = transform(dist_ldm, :"first" => ByRow(passmissing(lowercase)) => :"first")
+dist_ldm[!, "stimuli_join"] = (string.(dist_ldm[!, "first"], "_", dist_ldm[!, "second"]))
 df1 = innerjoin(iat, dist_ldm, on = :stimuli_join) #, renamecols = "_left" => "_right"
 
 m_ldm = let levels = ["m", "f", "n"]
-  form = MakeFormula(baseline , "ldmX")
+  form = MakeFormula(baseline , "ldm")
   contrasts = Dict(
     :birth_sex => HypothesisCoding(
       [
@@ -208,14 +213,29 @@ r2_ldm_conditional = r2(m_ldm; conditional =  true)
 f2 = (r2_ldm_conditional - r2_bl_conditional)/(1 - r2_ldm_conditional)
 
 #dfCor = select(iat,[:"RT",:"ldm"])
-cor_RT_ldm = cor(df1[!, "RT"], df1[!,"ldmX"])
-ct = CorrelationTest(df1[!, "RT"], df1[!,"ldmX"])
+cor_RT_ldm = cor(df1[!, "RT"], df1[!,"ldm"])
+ct = CorrelationTest(df1[!, "RT"], df1[!,"ldm"])
 
 ci = confint(ct)
 lower_bound = ci[1]
 upper_bound = ci[2]
 #print(cor_RT_ldm, lower_bound, upper_bound )
 #round(lower_bound,sigdigits = 3)
+
+ldmx_coef= "NA"
+m_CI = confint(m_ldm; level=0.95)
+m_Coefs = coef(m_ldm)
+m_Coefs_names = coefnames(m_ldm)
+for i in 1:size(m_Coefs_names)[1]
+  if cmp(m_Coefs_names[i],"trial_number")==0
+   ldmx_coef=m_Coefs[i]
+  end
+end
+
+ldmX_CI = m_CI["trial_number"]
+
+squared_r = map(x -> x^2, residuals(m_ldm))
+rmsea =sqrt(mean(squared_r))
 
 modelStats = DataFrame([(model = ldm_nameIn, 
 						BIC = format(bic(m_ldm),width=10, precision = 0),
@@ -224,7 +244,10 @@ modelStats = DataFrame([(model = ldm_nameIn,
 						R2_ldm_conditional = r2_ldm_conditional,
 						f2_conditional = f2,
 						Cor = cor_RT_ldm,
-            CI = (lower_bound, upper_bound))
+            CI = (lower_bound, upper_bound),
+            coef_lmd = ldmx_coef,
+            coef_CI = (string(ldmX_CI[2]) *","*  string(ldmX_CI[3])),
+            RMSEA = rmsea)
 						])
 
 return modelStats
@@ -235,8 +258,11 @@ end
 ## Summary of BICs
 # Coefficients: ?
 ```{julia}
+
+
+#coefnames(m_bl)== "trial_number"
 #| echo: false
-#print(fixef(m_ldm))
+#print(fixef(typeof(m_ldm)))
 #print(fieldnames(typeof(m_bl)))
 #print(m_bl.σ)
 
@@ -248,12 +274,22 @@ end
 
 ```
 
+```{julia}
+
+function OutTitle(text)
+#| echo: false
+#| output: asis
+    print("## ------- "* text)
+end
+```
+
 
 ```{julia}
 #| echo: false
 modelStatsRes = DataFrame()
-for i in 1:3
-  display(Markdown.parse("## "* distances[i]))
+for i in 1:20
+  #print("## "* distances[i])
+  OutTitle(distances[i])
   modelStatsRes = append!(modelStatsRes, MakeModel(distances[i]))
 end 
 OutTable(modelStatsRes)
@@ -263,6 +299,5 @@ OutTable(modelStatsRes)
 ```{julia}
 close_html()
 ```
-
 
 
