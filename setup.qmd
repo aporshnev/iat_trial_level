@@ -24,22 +24,15 @@ using Pkg
 #Pkg.add("MixedModelsExtras")
 #Pkg.add("HypothesisTests")
 #Pkg.add("Formatting")
-using Markdown
+Pkg.add("Random")
 ```
 
 ```{julia}
 #| echo: false
 #| output: asis
-i = 10
-function Head(s)
-md = Markdown.parse("## "*s);
-md
-end
 ```
 ```{julia}
 #| echo: true
 
-
-Head("hello")
 
 ```
