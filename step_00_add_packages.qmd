@@ -1,0 +1,38 @@
+---
+engine: julia
+julia:
+  exeflags: ["--project=."]
+---
+
+```{julia}
+using Pkg
+
+#Pkg.add("MixedModels")
+#Pkg.add("MixedModelsMakie")
+#Pkg.add("CairoMakie")
+#Pkg.add("DataFrames")
+#Pkg.add("RCall")
+#Pkg.add("Arrow")
+#Pkg.add("StandardizedPredictors")
+#Pkg.add("BoxCox")
+#Pkg.add("LinearAlgebra")
+#Pkg.add("StatsAPI")
+#Pkg.add("StatsBase")
+#Pkg.add("CSV")
+#Pkg.add("PrettyTables")
+#Pkg.add("CSV")
+#Pkg.add("MixedModelsExtras")
+#Pkg.add("HypothesisTests")
+#Pkg.add("Formatting")
+Pkg.add("Random")
+```
+
+```{julia}
+#| echo: false
+#| output: asis
+```
+```{julia}
+#| echo: true
+
+
+```

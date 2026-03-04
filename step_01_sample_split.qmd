@@ -1,0 +1,97 @@
+---
+title: "IAT Participant level analysis: Step 01.Sample split"
+author: "Alexander Porshnev"
+date: "12/05/2025"
+format:
+  html:
+    code-fold: true
+engine: julia
+julia:
+  exeflags: ["--project=."]
+execute:
+  echo: false
+  warning: false
+  info: false
+---
+
+
+```{julia}
+#| echo: false
+#| results: "hidden" 
+	using Pkg
+	using CairoMakie        
+	using DataFrames
+	using Arrow
+	using StatsAPI
+	using StatsBase
+	using CSV
+	using Formatting
+  using Markdown
+  using Random
+```
+
+
+```{julia}
+#| echo: false
+#| results: "hidden" 
+function ABsplit(df, seed, p)
+Random.seed!(seed)
+# US subset
+p_data_US = filter(row -> row.countryres == "US", df)
+p_US = unique(p_data_US.subj)
+f = length(p_US)
+print("pUS: $f")
+US_ids_subsetA = sample(p_US, round(Int, length(p_US) * p), replace=false)
+US_ids_subsetB = p_US[.!in.(p_US, Ref(US_ids_subsetA))]
+
+f = length(US_ids_subsetA)
+print("subsetA: $f")
+
+f = length(US_ids_subsetB)
+print("subsetA: $f")
+
+#UK subset
+p_data_UK = filter(row -> row.countryres == "UK", df)
+p_UK = unique(p_data_UK.subj)
+f = length(p_UK)
+print("p_UK: $f")
+UK_ids_subsetA = sample(p_UK, round(Int, length(p_UK) * p), replace=false)
+UK_ids_subsetB = p_UK[.!in.(p_UK, Ref(UK_ids_subsetA))]
+
+f = length(UK_ids_subsetA)
+print("UK subsetA: $f")
+
+f = length(UK_ids_subsetB)
+print("UK subsetA: $f")
+
+# Combine
+ids_subsetA = vcat(UK_ids_subsetA, US_ids_subsetA)
+ids_subsetB = vcat(UK_ids_subsetB, US_ids_subsetB)
+
+
+return ids_subsetA, ids_subsetB
+end  
+```
+
+
+```{julia}
+iat = DataFrame(Arrow.Table("../out_step_02/t_2009_clean.arrow")) # clean arrow file as input
+#names(iat)
+rseed = 42 #set seed
+
+df_sA, df_sB = ABsplit(iat, rseed, 0.8);
+
+df_A = filter(row -> row.subj in Set(df_sA), iat)
+df_B = filter(row -> row.subj in Set(df_sB), iat)
+
+```
+## Save Dataset 
+```{julia}
+Arrow.write("../out_step_02/t_2009_A$rseed.arrow", df_A, compress =:lz4)
+Arrow.write("../out_step_02/t_2009_B$rseedc.arrow", df_B, compress =:lz4)
+```
+
+```{julia}
+#df_A = DataFrame(Arrow.Table("../out_step_02/t_2009_Ac.arrow"))
+#df_B = DataFrame(Arrow.Table("../out_step_02/t_2009_Bc.arrow"))
+```
