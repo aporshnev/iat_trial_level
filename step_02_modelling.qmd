@@ -1,5 +1,5 @@
 ---
-title: "IAT Participant level analysis: main"
+title: "IAT Participant level analysis: main Step 02 Linear Mixed Modelling with Language Features"
 author: "Alexander Porshnev"
 date: "12/05/2025"
 format:
@@ -14,8 +14,6 @@ execute:
   info: false
 ---
 
-<!-- this setup dependencies, but doesn't appear in the generated document -->
-
 ```{julia}
 #| echo: false
 #| results: "hidden" 
@@ -24,7 +22,6 @@ execute:
 	using DataFrames
 	using MixedModels
 	using MixedModelsMakie # diagnostic plots
-	#using RCall            # call R from Julia if error run set R_HOME='*' in terminal
 	using Arrow
 	using StandardizedPredictors
 	using BoxCox
@@ -38,90 +35,21 @@ execute:
   using Formatting
   using Markdown
   using Random
-  #using NamedArrays
-  #using FreqTables
-  #using LinearRegressionKit
-```
+  ```
 
-{julia}
-#| echo: false
-#| results: "hidden" 
-function ABsplit(df, seed, p)
+##  Main analysis requrements
+t_2009_A(randomseed).arrow
+t_2009_B(randomseed).arrow
+../in_Distances/all/(ldm_name.cvs) - files with distances 
 
-Random.seed!(seed)
-# US subset
-p_data_US = filter(row -> row.countryres == "US", df)
-p_US = unique(p_data_US.subj)
-f = length(p_US)
-print("pUS: $f")
-US_ids_subsetA = sample(p_US, round(Int, length(p_US) * p), replace=false)
-US_ids_subsetB = p_US[.!in.(p_US, Ref(US_ids_subsetA))]
-
-f = length(US_ids_subsetA)
-print("subsetA: $f")
-
-f = length(US_ids_subsetB)
-print("subsetA: $f")
-
-#UK subset
-p_data_UK = filter(row -> row.countryres == "UK", df)
-p_UK = unique(p_data_UK.subj)
-f = length(p_UK)
-print("p_UK: $f")
-UK_ids_subsetA = sample(p_UK, round(Int, length(p_UK) * p), replace=false)
-UK_ids_subsetB = p_UK[.!in.(p_UK, Ref(UK_ids_subsetA))]
-
-f = length(UK_ids_subsetA)
-print("UK subsetA: $f")
-
-f = length(UK_ids_subsetB)
-print("UK subsetA: $f")
-
-# Combine
-ids_subsetA = vcat(UK_ids_subsetA, US_ids_subsetA)
-ids_subsetB = vcat(UK_ids_subsetB, US_ids_subsetB)
-
-
-return ids_subsetA, ids_subsetB
-end  
-```
-Random.seed!(42)  # for reproducibility
-
-all_subj = unique(df.subj)
-n = length(all_subj)
-
-train_subj = sample(all_subj, round(Int, n * 0.8), replace=false)
-check_subj = all_subj[.!in.(all_subj, Ref(Set(train_subj)))]
-
-train = filter(row -> row.subj in Set(train_subj), df)
-check = filter(row -> row.subj in Set(check_subj), df)
-
-{julia}
-iat = DataFrame(Arrow.Table("../out_step_02/t_2009_clean.arrow"))
-#names(iat)
-rseed = 42
-df_sA, df_sB = ABsplit(iat, rseed, 0.8);
-
-df_A = filter(row -> row.subj in Set(df_sA), iat)
-
-df_B = filter(row -> row.subj in Set(df_sB), iat)
-
-```
-## Upload Dataset & helper print functions
-{julia}
-Arrow.write("../out_step_02/t_2009_Ac.arrow", df_A, compress =:lz4)
-Arrow.write("../out_step_02/t_2009_Bc.arrow", df_B, compress =:lz4)
-
-```
-
-{julia}
-dfAtmp=df_A
-dfBtmp=df_B
-```
+## Main analysis outputs
+bl_render.html - regression tables & summary
+results.csv - summary tables for all A,B models with BIC, R2, correlation etc.
 
 ```{julia}
-df_A = DataFrame(Arrow.Table("../out_step_02/t_2009_Ac.arrow"))
-df_B = DataFrame(Arrow.Table("../out_step_02/t_2009_Bc.arrow"))
+rseed = 42
+df_A = DataFrame(Arrow.Table("../out_step_02/t_2009_A$rseed.arrow"))
+df_B = DataFrame(Arrow.Table("../out_step_02/t_2009_B$rseed.arrow"))
 ```
 ```{julia}
 #| echo: false
@@ -173,12 +101,10 @@ function MakeFormula(baseline, dist_name)
  return eval(Meta.parse("@formula(" * baseline * " + " * dist_name * ")"))
 end
 
-
-
 init_html()
 ```
 
-# Formula
+# Baseline formula
 compare to baseline:
 baseline = "RT ~
 1 + age + birth_sex + countryres 
@@ -189,7 +115,9 @@ baseline = "RT ~
  
 
 ```{julia}
-#=distances=["cos_subtitles_skipgram_50_r3",
+#=
+for testing purposes
+distances=["cos_subtitles_skipgram_50_r3",
 "cos_subtitles_skipgram_100_r5",
 "cos_subtitles_skipgram_50_r5",
 "cos_subtitles_skipgram_50_r10",
@@ -224,7 +152,7 @@ files = filter(f -> f != ".DS_Store", files)
 distances=files
 ```
 
-# Baseline
+# Baseline model statistics
 ```{julia}
 #| echo: false
 
@@ -372,24 +300,7 @@ end
 ```
 
 
-## Summary of BICs
-# Coefficients: ?
-```{julia}
-
-
-#coefnames(m_bl)== "trial_number"
-#| echo: false
-#print(fixef(typeof(m_ldm)))
-#print(fieldnames(typeof(m_bl)))
-#print(m_bl.σ)
-
-#var_fe = var_fe = var(predict(m_ldm, type=:fixed))
-
-#var_re = sum(abs2, m_bl.σ)
-#println(var_re)
-#var_res = abs2(m_bl.σ[end])
-
-```
+# Linear mixed models with language features (distances)
 
 ```{julia}
 
@@ -405,8 +316,7 @@ end
 ```{julia} 
 #| echo: false
 modelStatsRes = DataFrame()
-for i in 1:length(distances)
-  #print("## "* distances[i])
+for i in 1:3#length(distances)
   name = distances[i]
   OutTitle("$i.LDM: $name")
 
@@ -415,7 +325,7 @@ for i in 1:length(distances)
 end 
 ```
 
-# See Tables in bl_render.html and summary in results.csv
+## Summary also saved in HTML: bl_render.html and CSV: results.csv
 ```{julia}
 OutTable(modelStatsRes)
 ```
