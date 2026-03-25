@@ -33,15 +33,16 @@ execute:
 
 ```{julia}
 #| echo: false
-#| results: "hidden" 
+#| results: "hidden"
 function ABsplit(df, seed, p)
 Random.seed!(seed)
 # US subset
 p_data_US = filter(row -> row.countryres == "US", df)
-p_US = unique(p_data_US.subj)
+p_US = unique(p_data_US.session_id)
 f = length(p_US)
 print("pUS: $f")
-US_ids_subsetA = sample(p_US, round(Int, length(p_US) * p), replace=false)
+v=AbstractArray,(1,2,3,4,5,6,7,8,9,100)
+US_ids_subsetA = StatsBase.sample(p_US, round(Int, length(p_US) * p), replace=false)
 US_ids_subsetB = p_US[.!in.(p_US, Ref(US_ids_subsetA))]
 
 f = length(US_ids_subsetA)
@@ -52,10 +53,10 @@ print("subsetA: $f")
 
 #UK subset
 p_data_UK = filter(row -> row.countryres == "UK", df)
-p_UK = unique(p_data_UK.subj)
+p_UK = unique(p_data_UK.session_id)
 f = length(p_UK)
 print("p_UK: $f")
-UK_ids_subsetA = sample(p_UK, round(Int, length(p_UK) * p), replace=false)
+UK_ids_subsetA = StatsBase.sample(p_UK, round(Int, length(p_UK) * p), replace=false)
 UK_ids_subsetB = p_UK[.!in.(p_UK, Ref(UK_ids_subsetA))]
 
 f = length(UK_ids_subsetA)
@@ -74,21 +75,24 @@ end
 ```
 
 
+### random seed = 42 year = 2009;  2192042: 2014, 2019, 2009
 ```{julia}
-iat = DataFrame(Arrow.Table("../out_step_02/t_2009_clean.arrow")) # clean arrow file as input
-#names(iat)
-rseed = 42 #set seed
+year = 2009
+iat = DataFrame(Arrow.Table("../in_IAT_clean_data/pt_$year.arrow")) # clean arrow file as input
+
+names(iat)
+rseed = 2192042
 
 df_sA, df_sB = ABsplit(iat, rseed, 0.8);
 
-df_A = filter(row -> row.subj in Set(df_sA), iat)
-df_B = filter(row -> row.subj in Set(df_sB), iat)
+df_A = filter(row -> row.session_id in Set(df_sA), iat)
+df_B = filter(row -> row.session_id in Set(df_sB), iat)
 
 ```
 ## Save Dataset 
 ```{julia}
-Arrow.write("../out_step_02/t_2009_A$rseed.arrow", df_A, compress =:lz4)
-Arrow.write("../out_step_02/t_2009_B$rseedc.arrow", df_B, compress =:lz4)
+Arrow.write("../Out/$rseed/AB_split/$year-A$rseed.arrow", df_A, compress =:lz4)
+Arrow.write("../Out/$rseed/AB_split/$year-B$rseed.arrow", df_B, compress =:lz4)
 ```
 
 ```{julia}
