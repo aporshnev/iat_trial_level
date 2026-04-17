@@ -81,7 +81,7 @@ year = 2009
 iat = DataFrame(Arrow.Table("../in_IAT_clean_data/pt_$year.arrow")) # clean arrow file as input
 
 names(iat)
-rseed = 2192042
+
 
 df_sA, df_sB = ABsplit(iat, rseed, 0.8);
 
@@ -90,6 +90,16 @@ df_B = filter(row -> row.session_id in Set(df_sB), iat)
 
 ```
 ## Save Dataset 
+```{julia}
+rseed = 2192042
+try
+mkdir("../Out")
+mkdir("../Out/$rseed")
+mkdir("../Out/$rseed/Results")
+catch e
+end
+```
+
 ```{julia}
 Arrow.write("../Out/$rseed/AB_split/$year-A$rseed.arrow", df_A, compress =:lz4)
 Arrow.write("../Out/$rseed/AB_split/$year-B$rseed.arrow", df_B, compress =:lz4)
